@@ -9,17 +9,20 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
+pub struct Time {
+    pub dt: f64,
+}
+
 pub struct Screen<'a> {
     gl: &'a mut GlGraphics,
-    args: &'a RenderArgs,
-    context: &'a graphics::Context,
+    args: RenderArgs,
+    context: graphics::Context,
 }
 
 impl<'a> Screen<'a> {
     pub fn draw_box_at_angle(&mut self, angle: f64) {
         use graphics::*;
 
-        const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
         const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 
         let square = rectangle::square(0.0, 0.0, 50.0);
@@ -33,19 +36,41 @@ impl<'a> Screen<'a> {
     }
 }
 
-pub fn render<F>(gl: &mut GlGraphics, args: &RenderArgs, f: &F) where F: Fn(&mut Screen) {
-    use graphics::*;
+pub fn main_loop<STATE, RF, UF>(state: &mut STATE, render_func: RF, update_func: UF) 
+    where RF: Fn(&STATE, Screen), UF: Fn(&mut STATE, Time)
+{
+    let opengl = OpenGL::V3_2;
 
-    const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
-    gl.draw(args.viewport(), |c, gl| {
-        clear(BLACK, gl);
+    let mut window: Window = WindowSettings::new(
+            "spinning-square",
+            [200, 200]
+        )
+        .opengl(opengl)
+        .exit_on_esc(true)
+        .build()
+        .unwrap();
 
-        let mut screen = Screen {
-            gl: gl,
-            args: args,
-            context: &c,
-        };
+    let mut gl = GlGraphics::new(opengl);
+    let mut events = Events::new(EventSettings::new());
 
-        f(&mut screen)
-    });
+    while let Some(e) = events.next(&mut window) {
+        if let Some(r) = e.render_args() {
+            use graphics::*;
+
+            const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+            gl.draw(r.viewport(), |c, gl| {
+                clear(BLACK, gl);
+                render_func(state, Screen {
+                    gl: gl,
+                    args: r,
+                    context: c,
+                });
+            });
+        }
+
+        if let Some(u) = e.update_args() {
+            let time = Time { dt: u.dt };
+            update_func(state, time);
+        }
+    };
 }
