@@ -1,38 +1,27 @@
 mod backend;
 use backend::*;
 
-fn bounds((x, y): ScreenSize) -> Rectangle {
-    ((x - 80.0, y - 80.0), (x - 20.0, y - 20.0))
+fn draw<T>(mut screen: Screen, _state: &T) {
+    let triangle = 
+        equilateral_triangle(GREEN)
+        .scale(200.0)
+        .translate([300.0, 300.0]);
+
+    screen.draw(&triangle);
+    
 }
 
-fn inside(((x0,y0),(x1,y1)): Rectangle, (xp,yp): Point) -> bool {
-    x0 <= xp && xp < x1 && y0 <= yp && yp < y1
-}
-
-fn draw(mut screen: Screen, on: bool) {
-    const RED: Color = [1.0, 0.0, 0.0, 1.0];
-    const GREEN: Color = [0.0, 1.0, 0.0, 1.0];
-
-    screen.draw_box(
-        if on { GREEN } else { RED },
-        bounds(screen.size),
-    );
-}
-
-fn handle_click(Event::Click(pos): Event, size: ScreenSize, on: &mut bool) {
-    if inside(bounds(size), pos) {
-        *on = !*on;
-    }
+fn handle_event<T>(_event: Event, _size: ScreenSize, _state: &mut T) {
 }
 
 fn main() {
-    let mut on = true;
+    let mut state = ();
 
     main_loop(
         "rudiger",
-        &mut on,
-        |scrn, s| draw(scrn, *s),
-        |time, s| (),
-        |evnt, sz, s| handle_click(evnt, sz, s),
+        &mut state,
+        |screen, state| draw(screen, state),
+        |_time, _state| (),
+        |event, size, state| handle_event(event, size, state),
     );
 }
