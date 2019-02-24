@@ -2,27 +2,23 @@ use super::*;
 
 use graphics::math::{Matrix2d, identity, multiply, scale, translate};
 
-struct Polygon {
-    color: Color,
-    points: Vec<Point>,
+enum ShapePrivate {
+    Polygon {
+        color: Color,
+        points: Vec<Point>,
+    },
+    Lines {
+        color: Color,
+        points: Vec<Point>,
+        open: bool,
+    },
+    Transform {
+        shape: Box<Shape>,
+        transform: Matrix2d,
+    }
 }
 
-struct Lines {
-    color: Color,
-    points: Vec<Point>,
-    open: bool,
-}
-
-struct Transform {
-    shape: Box<Shape>,
-    transform: Matrix2d,
-}
-
-pub enum Shape {
-    Polygon(Polygon),
-    Lines(Lines),
-    Transform(Transform),
-}
+pub struct Shape(ShapePrivate);
 
 pub fn equilateral_triangle(color: Color) -> Shape {
     let trig = 5.0_f64.sqrt() * 0.25;
@@ -49,22 +45,13 @@ impl Shape {
         self.multiply(translate(p))
     }
 
-    fn multiply_notok(self, matrix: Matrix2d) -> Self {
-        if let Shape::Transform(mut t) = self {
+    fn multiply(mut self, matrix: Matrix2d) -> Self {
+        if let Shape::Transform(ref mut t) = self {
             t.transform = multiply(matrix, t.transform);
             self
         } else {
             Shape::Transform(Transform { shape: Box::new(self), transform: matrix })
         }
-    }
-
-    fn multiply(self, matrix: Matrix2d) -> Self {
-        let t = if let Shape::Transform(t) = self {
-            Transform { shape: t.shape, transform: multiply(matrix, t.transform) }
-        } else {
-            Transform { shape: Box::new(self), transform: matrix }
-        };
-        Shape::Transform(t)
     }
 }
 
