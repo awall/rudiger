@@ -49,6 +49,15 @@ impl Shape {
         self.multiply(translate(p))
     }
 
+    fn multiply_notok(self, matrix: Matrix2d) -> Self {
+        if let Shape::Transform(mut t) = self {
+            t.transform = multiply(matrix, t.transform);
+            self
+        } else {
+            Shape::Transform(Transform { shape: Box::new(self), transform: matrix })
+        }
+    }
+
     fn multiply(self, matrix: Matrix2d) -> Self {
         let t = if let Shape::Transform(t) = self {
             Transform { shape: t.shape, transform: multiply(matrix, t.transform) }
