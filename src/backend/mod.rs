@@ -9,8 +9,8 @@ use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
 use graphics::Transformed;
+use graphics::DrawState;
 use graphics::math::Matrix2d;
-use graphics::math::identity;
 
 pub mod color;
 pub use color::*;
@@ -21,14 +21,13 @@ pub use types::*;
 pub mod shape;
 pub use shape::*;
 
-pub struct Screen<'a> {
-    gl: &'a mut GlGraphics,
-    context: graphics::Context,
-    pub size: ScreenSize,
-}
-
 pub enum Event {
     Click(Point),
+}
+
+struct Screen<'a> {
+    gl: &'a mut GlGraphics,
+    context: graphics::Context,
 }
 
 impl<'a> Screen<'a> {
@@ -36,26 +35,24 @@ impl<'a> Screen<'a> {
         self.context = self.context.append_transform(matrix);
     }
 
-    fn draw_polygon(&mut self, color: &Color, points: &[Point]) {
+    fn draw_polygon(&mut self, color: Color, points: &[Point]) {
         use graphics::polygon::*;
-        use graphics::*;
 
         let poly = Polygon::new(color.components());
         poly.draw(points, &DrawState::default(), self.context.transform, self.gl);
     }
 
-    fn draw_lines(&mut self, color: &Color, points: &[Point], _open: bool) {
-        use graphics::polygon::*;
-        use graphics::*;
+    fn draw_line(&mut self, color: Color, thickness: f64, points: [f64; 4]) {
+        use graphics::line::*;
 
-        let poly = Polygon::new(color.components());
-        poly.draw(points, &DrawState::default(), identity(), self.gl);
+        let line = Line::new(color.components(), 0.5 * thickness);
+        line.draw(points, &DrawState::default(), self.context.transform, self.gl);
     }
 }
 
 pub fn main_loop<STATE, RF, UF, EF>(title: &str, state: &mut STATE, render_func: RF, update_func: UF, event_func: EF)
 where
-    RF: Fn(Screen, &STATE),
+    RF: Fn(ScreenSize, &STATE) -> Shape,
     UF: Fn(Seconds, &mut STATE),
     EF: Fn(Event, ScreenSize, &mut STATE),
 {
@@ -83,14 +80,10 @@ where
             gl.draw(r.viewport(), |c, gl| {
                 size = [r.width, r.height];
                 clear(BLACK, gl);
-                render_func(
-                    Screen {
-                        gl: gl,
-                        size: [r.width, r.height],
-                        context: c,
-                    },
-                    state,
-                );
+                Screen {
+                    gl: gl,
+                    context: c,
+                }.draw(render_func(size, state));
             });
         }
 

@@ -11,7 +11,7 @@ impl Color {
         Color { components: components }
     }
 
-    pub fn components(&self) -> [f32; 4] {
+    pub fn components(self) -> [f32; 4] {
         self.components
     }
 }

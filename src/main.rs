@@ -1,14 +1,17 @@
 mod backend;
 use backend::*;
 
-fn draw<T>(mut screen: Screen, _state: &T) {
-    let triangle = 
-        equilateral_triangle(GREEN)
-        .scale(200.0)
+fn handle_render<T>(_size: ScreenSize, _state: &T) -> Shape {    
+    let tri = equilateral_triangle(GREEN);
+    let line = triangle_bottom_line(RED, 0.05);
+    let both = Shape::join(tri, line);
+    let both = both
+        .scale(100.0)
         .translate([300.0, 300.0]);
+    both
+}
 
-    screen.draw(&triangle);
-    
+fn handle_time<T>(_time: Seconds, _state: &mut T) {
 }
 
 fn handle_event<T>(_event: Event, _size: ScreenSize, _state: &mut T) {
@@ -20,8 +23,8 @@ fn main() {
     main_loop(
         "rudiger",
         &mut state,
-        |screen, state| draw(screen, state),
-        |_time, _state| (),
-        |event, size, state| handle_event(event, size, state),
+        handle_render,
+        handle_time,
+        handle_event,
     );
 }
