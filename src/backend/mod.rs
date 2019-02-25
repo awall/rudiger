@@ -11,6 +11,9 @@ use piston::window::WindowSettings;
 use graphics::Transformed;
 use graphics::DrawState;
 use graphics::math::Matrix2d;
+use graphics::radians::Radians;
+
+pub use piston::input::keyboard::Key;
 
 pub mod color;
 pub use color::*;
@@ -23,6 +26,7 @@ pub use shape::*;
 
 pub enum Event {
     Click(Point),
+    KeyPress(Key),
 }
 
 struct Screen<'a> {
@@ -91,11 +95,6 @@ where
             update_func(Seconds(u.dt), state);
         }
 
-        if let Some(button) = e.press_args() {
-            if button == Button::Mouse(MouseButton::Left) {
-            }
-        }
-
         if let Some(button) = e.release_args() {
             if button == Button::Mouse(MouseButton::Left) {
                 if let Some(pos) = last_pos {
@@ -107,6 +106,13 @@ where
 
         if let Some(pos) = e.mouse_cursor_args() {
             last_pos = Some(pos);
+        }
+
+        if let Some(button) = e.press_args() {
+            if let Button::Keyboard(key) = button {
+                let event = Event::KeyPress(key);
+                event_func(event, size, state);
+            }
         }
     }
 }

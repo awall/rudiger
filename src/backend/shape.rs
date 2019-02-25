@@ -1,16 +1,16 @@
 use super::*;
 
-use graphics::math::{Matrix2d, multiply, scale, translate};
+use graphics::math::{Matrix2d, rotate_radians, multiply, scale, translate};
 
 enum ShapePrivate {
     Polygon {
         color: Color,
-        points: Vec<Point>,
+        points: Vec<[f64; 2]>,
     },
     Line {
         color: Color,
-        thickness: Pixels,
-        points: [Pixels; 4],
+        thickness: f64,
+        points: [f64; 4],
     },
     Transform {
         shape: Box<ShapePrivate>,
@@ -25,23 +25,18 @@ pub struct Shape(ShapePrivate);
 
 use ShapePrivate::*;
 
-pub fn triangle_bottom_line(color: Color, thickness: Pixels) -> Shape {
+pub fn line(color: Color, thickness: f64, [[x1,y1],[x2,y2]]: [[f64; 2]; 2]) -> Shape {
     Shape(Line {
         color: color,
         thickness: thickness,
-        points: [0.5, 0.25, -0.5, 0.25],
+        points: [x1,y1,x2,y2],
     })
 }
 
-pub fn equilateral_triangle(color: Color) -> Shape {
-    let trig = 5.0_f64.sqrt() * 0.25;
+pub fn polygon(color: Color, points: Vec<Point>) -> Shape {
     Shape(Polygon {
         color: color,
-        points: vec![
-            [0.0, -trig], 
-            [0.5, 0.25], 
-            [-0.5, 0.25],
-        ],
+        points: points,
     })
 }
 
@@ -63,11 +58,15 @@ impl Shape {
     }
 
     pub fn behind(self, s: Shape) -> Self {
-        Self::join(s, self)
+        Self::join(self, s)
     }
 
     pub fn scale(self, scale: f64) -> Self {
         self.scale_both([scale, scale])
+    }
+
+    pub fn rotate(self, Degrees(angle): Degrees) -> Self {
+        self.multiply(rotate_radians(angle.deg_to_rad()))
     }
 
     pub fn scale_both(self, [x, y]: Point) -> Self {
@@ -96,7 +95,7 @@ impl<'a> Screen<'a> {
     fn draw_private(&mut self, shape: ShapePrivate) {
         match shape {
             Line { color, thickness, points } => {
-                self.draw_line(color, thickness, points);
+                self.draw_line(color, thickness, points );
             },
             Polygon { color, points } => {
                 self.draw_polygon(color, &points);
