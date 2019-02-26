@@ -15,19 +15,23 @@ enum Move {
     BackwardRight,
 }
 
+fn modulo(x: i32, m: i32) -> i32 {
+    ((x % m) + m) % m
+}
+
 fn do_move(m : Move, state: &mut State) {
-    let o = state.orientation % 6;
+    let o = modulo(state.orientation, 6);
 
     let p = match m {
-        Move::ForwardLeft => 
+        Move::ForwardLeft =>
             if o == 0 { [0, 1] }
-            else if o == 1 { [-1, 0] } 
-            else if o == 2 { [-1, 0] } 
-            else if o == 3 { [0, -1] } 
-            else if o == 4 { [1, 0] } 
-            else { [1, 0] },
-
-        _ => 
+            else if o == 1 { [-1, 0] }
+            else if o == 2 { [-1, 0] }
+            else if o == 3 { [0, -1] }
+            else if o == 4 { [1, 0] }
+            else if o == 5 { [1, 0] }
+            else { [0, 0] },
+        _ =>
             [0, 0],
     };
 
@@ -45,16 +49,28 @@ fn do_move(m : Move, state: &mut State) {
 }
 
 fn handle_render(_size: ScreenSize, state: &State) -> Shape {
-    let trig = 5.0_f64.sqrt() * 0.25;
-    let a = [0.0, -trig];
-    let b = [0.5, 0.25];
-    let c = [-0.5, 0.25];
+    let even = (state.position[0] + state.position[1]) % 2 == 0;
+    let h = if even { 1.0 } else { -1.0 };
+
+    //let trig = 5.0_f64.sqrt() * 0.25;
+    let a = [0.0, -0.5 * h];
+    let b = [0.5, 0.5 * h];
+    let c = [-0.5, 0.5 * h];
+
+    let lp = match modulo(state.orientation, 6) {
+        0 => [b,c],
+        1 => [c,a],
+        2 => [a,c],
+        3 => [c,b],
+        4 => [b,a],
+        5 => [a,b],
+        _ => [a,a], // error
+    };
 
     let tri = polygon(GREEN, vec![a,b,c]);
-    let line = line(RED, 0.15, [b, c]);
+    let line = line(RED, 0.15, lp);
 
     tri.behind(line)
-        .rotate(Degrees(state.orientation as f64 * 60.0))
         .translate([0.5 * state.position[0] as f64, 0.5 * state.position[1] as f64])
         .scale(100.0)
         .translate([300.0, 300.0])
@@ -74,8 +90,8 @@ fn handle_event(event: Event, _size: ScreenSize, mut state: &mut State) {
             Key::X => Some(Move::BackwardRight),
             _ => None,
         };
-        
-        if let Some(m) = k { 
+
+        if let Some(m) = k {
             do_move(m, &mut state);
         }
     }
