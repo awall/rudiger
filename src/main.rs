@@ -6,30 +6,55 @@ struct State {
     position: [i32; 2],
 }
 
-enum Move {
-    ForwardLeft,
-    ForwardRight,
-    SpinLeft,
-    SpinRight,
-    BackwardLeft,
-    BackwardRight,
+enum Rotation {
+    Left, 
+    Right,
+} 
+
+enum Movement {
+    Forward,
+    Backward,
+    Spin,
 }
+
+struct Move(Movement, Rotation);
 
 fn modulo(x: i32, m: i32) -> i32 {
     ((x % m) + m) % m
 }
 
-fn do_move(m : Move, state: &mut State) {
+fn z(x: i32) -> i32 {
+    if x < 0 { 0 } else { x }
+}
+
+fn i(x: i32) -> i32 {
+    -x
+}
+
+fn do_move(Move(m, r) : Move, state: &mut State) {
     let o = modulo(state.orientation, 6);
 
+    let dir = match r {
+        Rotation::Left => -1,
+        Rotation::Right => 1,
+    };
+
     let p = match m {
-        Move::ForwardLeft =>
+        Movement::Forward =>
             if o == 0 { [0, 1] }
             else if o == 1 { [-1, 0] }
             else if o == 2 { [-1, 0] }
             else if o == 3 { [0, -1] }
             else if o == 4 { [1, 0] }
             else if o == 5 { [1, 0] }
+            else { [0, 0] },
+        Movement::Backward =>
+            if o == 0 { [-dir, 0] }
+            else if o == 1 { [z(i(dir)), i(z(dir))] }
+            else if o == 2 { [z(dir), 1 0]}
+            else if o == 3 { [dir, 0] }
+            else if o == 4 { [-1, 0] }
+            else if o == 5 { [0, -1] }
             else { [0, 0] },
         _ =>
             [0, 0],
@@ -38,14 +63,13 @@ fn do_move(m : Move, state: &mut State) {
     state.position[0] += p[0];
     state.position[1] += p[1];
 
-    match m {
-        Move::ForwardLeft => state.orientation -= 1,
-        Move::SpinLeft => state.orientation -= 2,
-        Move::BackwardLeft => state.orientation -= 1,
-        Move::ForwardRight => state.orientation += 1,
-        Move::SpinRight => state.orientation += 2,
-        Move::BackwardRight => state.orientation += 1,
-    }
+    let multiplier = match m {
+        Movement::Forward => 1,
+        Movement::Backward => 1,
+        Movement::Spin => 2,
+    };
+
+    state.orientation += multiplier * dir;
 }
 
 fn handle_render(_size: ScreenSize, state: &State) -> Shape {
@@ -71,7 +95,7 @@ fn handle_render(_size: ScreenSize, state: &State) -> Shape {
     let line = line(RED, 0.15, lp);
 
     tri.behind(line)
-        .translate([0.5 * state.position[0] as f64, 0.5 * state.position[1] as f64])
+        .translate([0.5 * state.position[0] as f64, 1.0 * state.position[1] as f64])
         .scale(100.0)
         .translate([300.0, 300.0])
 }
@@ -82,12 +106,12 @@ fn handle_time<T>(_time: Seconds, _state: &mut T) {
 fn handle_event(event: Event, _size: ScreenSize, mut state: &mut State) {
     if let Event::KeyPress(key) = event {
         let k = match key {
-            Key::Q => Some(Move::ForwardLeft),
-            Key::W => Some(Move::ForwardRight),
-            Key::A => Some(Move::SpinLeft),
-            Key::S => Some(Move::SpinRight),
-            Key::Z => Some(Move::BackwardLeft),
-            Key::X => Some(Move::BackwardRight),
+            Key::Q => Some(Move(Movement::Forward, Rotation::Left)),
+            Key::W => Some(Move(Movement::Forward, Rotation::Right)),
+            Key::A => Some(Move(Movement::Spin, Rotation::Left)),
+            Key::S => Some(Move(Movement::Spin, Rotation::Right)),
+            Key::Z => Some(Move(Movement::Backward, Rotation::Left)),
+            Key::X => Some(Move(Movement::Backward, Rotation::Right)),
             _ => None,
         };
 
